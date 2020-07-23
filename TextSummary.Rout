@@ -1,0 +1,252 @@
+
+R version 3.4.4 (2018-03-15) -- "Someone to Lean On"
+Copyright (C) 2018 The R Foundation for Statistical Computing
+Platform: x86_64-pc-linux-gnu (64-bit)
+
+R is free software and comes with ABSOLUTELY NO WARRANTY.
+You are welcome to redistribute it under certain conditions.
+Type 'license()' or 'licence()' for distribution details.
+
+  Natural language support but running in an English locale
+
+R is a collaborative project with many contributors.
+Type 'contributors()' for more information and
+'citation()' on how to cite R or R packages in publications.
+
+Type 'demo()' for some demos, 'help()' for on-line help, or
+'help.start()' for an HTML browser interface to help.
+Type 'q()' to quit R.
+
+[Previously saved workspace restored]
+
+> #problem with bigrams in later versions of tm
+> #require(devtools)
+> #install_version("tm", version= "0.6-2", repos = "http://cran.r-project.org")
+> 
+> 
+> library(dplyr)
+
+Attaching package: ‘dplyr’
+
+The following objects are masked from ‘package:stats’:
+
+    filter, lag
+
+The following objects are masked from ‘package:base’:
+
+    intersect, setdiff, setequal, union
+
+> library(tm)
+Loading required package: NLP
+> library(stringr)
+> library(ggplot2)
+
+Attaching package: ‘ggplot2’
+
+The following object is masked from ‘package:NLP’:
+
+    annotate
+
+> library(lubridate)
+
+Attaching package: ‘lubridate’
+
+The following object is masked from ‘package:base’:
+
+    date
+
+> library(caTools)
+> library(Hmisc)
+Loading required package: lattice
+Loading required package: survival
+Loading required package: Formula
+
+Attaching package: ‘Hmisc’
+
+The following objects are masked from ‘package:dplyr’:
+
+    src, summarize
+
+The following objects are masked from ‘package:base’:
+
+    format.pval, units
+
+> 
+> setwd("/home/matt/Documents/DisinformationSocialMedia")
+> 
+> #pro trump summary info
+> 
+> load(file="ProtrumpAccountInfo.rda")
+> 
+> glimpse(testbigdf)
+Observations: 21
+Variables: 17
+$ description       <chr> "★★Christian Conservative Retired Fighter Pilot &...
+$ statusesCount     <dbl> 126981, 104205, 99295, 81198, 45861, 4065, 199423...
+$ followersCount    <dbl> 120372, 5570, 21166, 299594, 3105, 5852, 141383, ...
+$ favoritesCount    <dbl> 7651, 41153, 126964, 751, 26000, 4834, 82853, 486...
+$ friendsCount      <dbl> 106383, 4751, 21332, 1790, 4879, 5907, 43229, 259...
+$ url               <chr> "https://t.co/pNiuy3d8lR", NA, NA, "https://t.co/...
+$ name              <chr> "✯✯Gene McVay✯✯", "JC2020", "Wyatt Earp", "Nation...
+$ created           <dttm> 2009-03-31 02:15:52, 2017-02-18 20:43:11, 2011-1...
+$ protected         <lgl> FALSE, FALSE, FALSE, FALSE, FALSE, FALSE, FALSE, ...
+$ verified          <lgl> FALSE, FALSE, FALSE, TRUE, FALSE, FALSE, FALSE, F...
+$ screenName        <chr> "GeneMcVay", "JC20204", "JamesDoss50", "NRO", "Pa...
+$ location          <chr> "Arkansas", "Oklahoma, USA", "Tombstone, AZ,, Ari...
+$ lang              <chr> "en", "en", "en", "en", "en", "en", "en", "en", "...
+$ id                <chr> "27789999", "833054275836211201", "396716038", "1...
+$ listedCount       <dbl> 1072, 25, 42, 6072, 16, 11, 427, 22, 0, 1394, 41,...
+$ followRequestSent <lgl> FALSE, FALSE, FALSE, FALSE, FALSE, FALSE, FALSE, ...
+$ profileImageUrl   <chr> "http://pbs.twimg.com/profile_images/429740379760...
+> #describe(testbigdf$statusesCount)
+> #describe(testbigdf$followersCount)
+> #describe(testbigdf$friendsCount)
+> 
+> tweets <- testbigdf
+> tweets$text <-tweets$description
+> 
+> tweets$text2 <-str_replace_all(tweets$text, '[[:punct:]]',' ')
+> tweets$text3 <-str_replace_all(tweets$text2,"[^[:graph:]]", " ") 
+> text <- data.frame(doc_id=row.names(tweets), text=tweets$text3)
+> #head(text)
+> corp <-Corpus(DataframeSource(text))
+> corp <- tm_map(corp, content_transformer(tolower))
+> myStopwords <- c(stopwords('english'), "http", "https", 'www', 'com', 'amp', 't', 'don', 'did','doesn')
+> corp <- tm_map(corp, removeWords, myStopwords)
+> tdm=TermDocumentMatrix(corp)
+> # define tdm as matrix
+> m = as.matrix(tdm)
+> # get word counts in decreasing order
+> word_freqs = sort(rowSums(m), decreasing=TRUE) 
+> # create a data frame with words and their frequencies
+> dm = data.frame(word=names(word_freqs), freq=word_freqs)
+> #dm
+> 
+> 
+> #anti trump summary info
+> 
+> load(file="antitrumpAccountInfo.rda")
+> 
+> glimpse(testbigdf)
+Observations: 41
+Variables: 17
+$ description       <chr> "Speaking Out Because I Can 🌊#Resist☮️Intersectio...
+$ statusesCount     <dbl> 18450, 33138, 44277, 30069, 148573, 23799, 28550,...
+$ followersCount    <dbl> 10388, 6585, 7076, 114714, 24711, 14687, 43927, 6...
+$ favoritesCount    <dbl> 42132, 31178, 9482, 40074, 216979, 13493, 44451, ...
+$ friendsCount      <dbl> 10639, 7123, 6997, 123555, 12868, 13180, 31526, 1...
+$ url               <chr> "https://t.co/gQJSJ42Z2G", NA, "https://t.co/TDgR...
+$ name              <chr> "Slightly Angry Asian", "Chuck", "Carl J. Peterse...
+$ created           <dttm> 2014-05-14 05:28:22, 2013-03-14 13:24:04, 2013-0...
+$ protected         <lgl> FALSE, FALSE, FALSE, FALSE, FALSE, FALSE, FALSE, ...
+$ verified          <lgl> FALSE, FALSE, FALSE, FALSE, FALSE, FALSE, FALSE, ...
+$ screenName        <chr> "AngryandAsian", "Cha51brolll19", "ChangeTheLAUSD...
+$ location          <chr> "La La Land", "Atlanta, GA", "Los Angeles, CA", "...
+$ lang              <chr> "en", "en", "en", "en", "en", "en", "en", "en", "...
+$ id                <chr> "2493770130", "1267075441", "1710316669", "321774...
+$ listedCount       <dbl> 26, 7, 47, 1166, 158, 118, 118, 1170, 12, 169, 30...
+$ followRequestSent <lgl> FALSE, FALSE, FALSE, FALSE, FALSE, FALSE, FALSE, ...
+$ profileImageUrl   <chr> "http://pbs.twimg.com/profile_images/103140314306...
+> #describe(testbigdf$statusesCount)
+> #describe(testbigdf$followersCount)
+> #describe(testbigdf$friendsCount)
+> 
+> tweets <- testbigdf
+> tweets$text <-tweets$description
+> 
+> tweets$text2 <-str_replace_all(tweets$text, '[[:punct:]]',' ')
+> tweets$text3 <-str_replace_all(tweets$text2,"[^[:graph:]]", " ") 
+> text <- data.frame(doc_id=row.names(tweets), text=tweets$text3)
+> #head(text)
+> corp <-Corpus(DataframeSource(text))
+> corp <- tm_map(corp, content_transformer(tolower))
+> myStopwords <- c(stopwords('english'), "http", "https", 'www', 'com', 'amp', 't', 'don', 'did','doesn')
+> corp <- tm_map(corp, removeWords, myStopwords)
+> tdm=TermDocumentMatrix(corp)
+> # define tdm as matrix
+> m = as.matrix(tdm)
+> # get word counts in decreasing order
+> word_freqs = sort(rowSums(m), decreasing=TRUE) 
+> # create a data frame with words and their frequencies
+> dm = data.frame(word=names(word_freqs), freq=word_freqs)
+> #dm
+> 
+> ##     PRO TRUMP BY WEEK
+> load(file="Protrump_aug26_sep1.rda")
+> 
+> 
+> 
+> tweets <- aggrp2
+> tweets$text2 <-str_replace_all(tweets$text, '[[:punct:]]',' ')
+> tweets$text3 <-str_replace_all(tweets$text2,"[^[:graph:]]", " ") 
+> text <- data.frame(doc_id=row.names(tweets), text=tweets$text3)
+> #head(text)
+> corp <-Corpus(DataframeSource(text))
+> corp <- tm_map(corp, content_transformer(tolower))
+> myStopwords <- c(stopwords('english'), "http", "https", 'www', 'com', 'amp', 't', 'don', 'did','doesn')
+> corp <- tm_map(corp, removeWords, myStopwords)
+> tdm=TermDocumentMatrix(corp)
+> # define tdm as matrix
+> m = as.matrix(tdm)
+> # get word counts in decreasing order
+> word_freqs = sort(rowSums(m), decreasing=TRUE) 
+> # create a data frame with words and their frequencies
+> dm = data.frame(word=names(word_freqs), freq=word_freqs)
+> dm2 <-filter(dm,freq > 30)
+> #dm2
+> 
+> 
+> 
+> corp <-VCorpus(DataframeSource(text))
+> corp <- tm_map(corp, content_transformer(tolower))
+> myStopwords <- c(stopwords('english'), "http", "https", 'www', 'com', 'amp', 't', 'don', 'did','doesn')
+> corp <- tm_map(corp, removeWords, myStopwords)
+> BigramTokenizer <-
++   function(x)
++     unlist(lapply(ngrams(words(x),2), paste, collapse = " "), use.names=FALSE)
+> tdm2=TermDocumentMatrix(corp, control=list(tokenize = BigramTokenizer))
+> # define tdm as matrix
+> m2 = as.matrix(tdm2)
+> # get word counts in decreasing order
+> word_freqs2 = sort(rowSums(m2), decreasing=TRUE) 
+> # create a data frame with words and their frequencies
+> dm2 = data.frame(word=names(word_freqs2), freq=word_freqs2)
+> dm22 <-filter(dm,freq > 5)
+> dm22
+   word freq
+1  2940   12
+2  7006    9
+3  5478    8
+4  7050    8
+5  5340    7
+6  7001    7
+7  7002    7
+8  7044    7
+9  7052    7
+10 7062    7
+11 7074    7
+12 2349    6
+13 2368    6
+14 3686    6
+15 5342    6
+16 6997    6
+17 6999    6
+18 7016    6
+19 7018    6
+20 7021    6
+21 7026    6
+22 7032    6
+23 7035    6
+24 7043    6
+25 7046    6
+26 7056    6
+27 7060    6
+28 7072    6
+29 7078    6
+> 
+> 
+> proc.time()
+   user  system elapsed 
+ 29.656   4.558  40.078 
+Warning message:
+system call failed: Cannot allocate memory 
