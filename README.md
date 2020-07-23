@@ -1,2 +1,2 @@
 # disinfo_campaigns
-work done in 2018  for disinfo_campaigns project at Data for Democracy
+)volunteer work work done in 2018 with [Steve Kramer](https://www.oreilly.com/content/identifying-viral-bots-and-cyborgs-in-social-media/) at Data for Democracy.  
